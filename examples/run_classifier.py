@@ -131,6 +131,47 @@ class MrpcProcessor(DataProcessor):
                 InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
         return examples
 
+      
+      
+class ArqaProcessor(DataProcessor):
+    """Processor for the MRPC data set (GLUE version)."""
+
+       def get_train_examples(self, data_dir):
+        """See base class."""
+        logger.info("LOOKING AT {}".format(os.path.join(data_dir, "train.tsv")))
+        return self._create_examples(os.path.join(data_dir, "train.intersection.json"), "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        return self._create_examples(os.path.join(data_dir, "val.intersection.json"), "dev")
+
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, inputFile, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+
+        with open(inputFile) as data_file:
+            data = json.load(data_file)
+            print("\t\tNumber of products:", len(data))
+            i = 0
+            for product in data:
+                producrID_List = product.keys()
+                for key in producrID_List:
+                    productItem = product[key]
+                    qaList = productItem["qa"]
+                    for qa in qaList:
+                        guid = "%s-%s" % (set_type, i)
+                        text_a = qa["q"]
+                        text_b = qa["selection"]
+                        label = qa["aType"]
+                        examples.append(
+                            InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
+                        i+=1
+        return examples
 
 class MnliProcessor(DataProcessor):
     """Processor for the MultiNLI data set (GLUE version)."""
@@ -392,12 +433,14 @@ def main():
         "cola": ColaProcessor,
         "mnli": MnliProcessor,
         "mrpc": MrpcProcessor,
+        "arqa": ArqaProcessor
     }
 
     num_labels_task = {
         "cola": 2,
         "mnli": 3,
         "mrpc": 2,
+        "arqa": 2
     }
 
     if args.local_rank == -1 or args.no_cuda:
